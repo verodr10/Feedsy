@@ -714,10 +714,14 @@
   }
 
   // ── POLL FOR IMAGE ──
-  async function pollForImage(id) {
+  async function pollForImage(predictionId) {
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 3000));
-      const res = await fetch(`/api/remove-bg?id=${id}`);
+      const res = await fetch('/api/remove-bg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ predictionId: predictionId })
+      });
       const data = await res.json();
       if (data.status === 'succeeded') return data.output;
       if (data.status === 'failed') return null;
