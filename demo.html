@@ -679,32 +679,21 @@
     try {
       const base64 = await fileToBase64(selectedFile);
 
-      // Start background removal (non-blocking)
-      const bgResponse = await fetch('/api/remove-bg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64 })
-      });
+      // Generate copy and remove background in parallel
+      const [posts, bgData] = await Promise.all([
+        generateCopy(description, currentGoal),
+        removeBg(base64)
+      ]);
 
-      if (!bgResponse.ok) throw new Error('Background removal failed. Please try again.');
-      const { id } = await bgResponse.json();
+      // Show processed image
+      if (bgData && bgData.imageUrl) {
+        const imageResult = document.getElementById('imageResult');
+        const resultImg = document.getElementById('resultImg');
+        resultImg.src = bgData.imageUrl;
+        imageResult.style.display = 'flex';
+      }
 
-      // Generate copy immediately (fast)
-      const posts = await generateCopy(description, currentGoal);
       showPosts(posts);
-      setLoading(false);
-
-      // Keep polling for image in background (slow - don't block UX)
-      pollForImage(id).then(imageUrl => {
-        if (imageUrl) {
-          const imageResult = document.getElementById('imageResult');
-          const resultImg = document.getElementById('resultImg');
-          resultImg.src = imageUrl;
-          imageResult.style.display = 'flex';
-        }
-      });
-
-      return; // skip finally setLoading(false) since we called it above
 
     } catch (err) {
       showError(err.message || 'Something went wrong. Please try again.');
@@ -713,20 +702,15 @@
     }
   }
 
-  // ── POLL FOR IMAGE ──
-  async function pollForImage(predictionId) {
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      const res = await fetch('/api/remove-bg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ predictionId: predictionId })
-      });
-      const data = await res.json();
-      if (data.status === 'succeeded') return data.output;
-      if (data.status === 'failed') return null;
-    }
-    return null;
+  // ── REMOVE BACKGROUND ──
+  async function removeBg(imageBase64) {
+    const res = await fetch('/api/remove-bg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imageBase64 })
+    });
+    if (!res.ok) return null;
+    return await res.json();
   }
 
   // ── GENERATE COPY via backend ──
