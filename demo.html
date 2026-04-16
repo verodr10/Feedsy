@@ -689,21 +689,22 @@
       if (!bgResponse.ok) throw new Error('Background removal failed. Please try again.');
       const { id } = await bgResponse.json();
 
-      // Run copy generation and image polling in parallel
-      const [posts, imageUrl] = await Promise.all([
-        generateCopy(description, currentGoal),
-        pollForImage(id)
-      ]);
-
-      // Show processed image if available
-      if (imageUrl) {
-        const imageResult = document.getElementById('imageResult');
-        const resultImg = document.getElementById('resultImg');
-        resultImg.src = imageUrl;
-        imageResult.style.display = 'flex';
-      }
-
+      // Generate copy immediately (fast)
+      const posts = await generateCopy(description, currentGoal);
       showPosts(posts);
+      setLoading(false);
+
+      // Keep polling for image in background (slow - don't block UX)
+      pollForImage(id).then(imageUrl => {
+        if (imageUrl) {
+          const imageResult = document.getElementById('imageResult');
+          const resultImg = document.getElementById('resultImg');
+          resultImg.src = imageUrl;
+          imageResult.style.display = 'flex';
+        }
+      });
+
+      return; // skip finally setLoading(false) since we called it above
 
     } catch (err) {
       showError(err.message || 'Something went wrong. Please try again.');
