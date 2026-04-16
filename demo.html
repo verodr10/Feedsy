@@ -396,7 +396,8 @@
     max-height: 200px;
     object-fit: contain;
     border-radius: 8px;
-    background: repeating-conic-gradient(#1c1c28 0% 25%, #111118 0% 50%) 0 0 / 16px 16px;
+    background: #ffffff;
+    padding: 8px;
   }
 
   /* POST CARDS */
@@ -610,6 +611,7 @@
       <div class="image-result" id="imageResult">
         <div class="result-label">📸 Product image — background removed</div>
         <img class="result-img" id="resultImg" alt="Processed product">
+        <button class="copy-btn" id="downloadBtn" onclick="downloadImage()" style="align-self:flex-start;margin-top:4px;">Download ↓</button>
       </div>
 
     </div>
@@ -710,7 +712,8 @@
       body: JSON.stringify({ imageBase64: imageBase64 })
     });
     if (!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    return data;
   }
 
   // ── GENERATE COPY via backend ──
@@ -815,6 +818,14 @@
 
   function hideError() {
     document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  function downloadImage() {
+    const img = document.getElementById('resultImg');
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = 'product-no-bg.png';
+    link.click();
   }
 </script>
 </body>
