@@ -670,7 +670,6 @@
   async function generate() {
     const description = document.getElementById('description').value.trim();
 
-    // Validate
     if (!selectedFile) return showError('Please upload a product photo first.');
     if (!description) return showError('Please describe your product.');
     hideError();
@@ -678,8 +677,9 @@
     setLoading(true);
 
     try {
-      // Step 1: Remove background
       const base64 = await fileToBase64(selectedFile);
+
+      // Start background removal (non-blocking)
       const bgResponse = await fetch('/api/remove-bg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -687,18 +687,22 @@
       });
 
       if (!bgResponse.ok) throw new Error('Background removal failed. Please try again.');
-      const bgData = await bgResponse.json();
+      const { id } = await bgResponse.json();
 
-      // Show processed image
-      const imageResult = document.getElementById('imageResult');
-      const resultImg = document.getElementById('resultImg');
-      resultImg.src = bgData.imageUrl;
-      imageResult.style.display = 'flex';
+      // Run copy generation and image polling in parallel
+      const [posts, imageUrl] = await Promise.all([
+        generateCopy(description, currentGoal),
+        pollForImage(id)
+      ]);
 
-      // Step 2: Generate copy with Claude
-      const posts = await generateCopy(description, currentGoal);
+      // Show processed image if available
+      if (imageUrl) {
+        const imageResult = document.getElementById('imageResult');
+        const resultImg = document.getElementById('resultImg');
+        resultImg.src = imageUrl;
+        imageResult.style.display = 'flex';
+      }
 
-      // Show posts
       showPosts(posts);
 
     } catch (err) {
@@ -708,37 +712,28 @@
     }
   }
 
-  // ── GENERATE COPY via Anthropic API ──
+  // ── POLL FOR IMAGE ──
+  async function pollForImage(id) {
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const res = await fetch('/api/remove-bg?id=' + id);
+      const data = await res.json();
+      if (data.status === 'succeeded') return data.output;
+      if (data.status === 'failed') return null;
+    }
+    return null;
+  }
+
+  // ── GENERATE COPY via backend ──
   async function generateCopy(description, goal) {
-    const goalInstruction = goal === 'sell'
-      ? 'Write posts focused on driving action and sales. Include a clear call to action (e.g., "Order now", "Get yours today", "Link in bio"). Be persuasive and create urgency.'
-      : 'Write posts focused on presenting and showcasing the product. Highlight its qualities, uses, and emotional appeal. Inspire, don\'t pressure.';
-
-    const prompt = `You are a social media copywriter for small e-commerce businesses.
-
-Product description: ${description}
-
-${goalInstruction}
-
-Write exactly 3 different Instagram post variations. Each should have a different tone or angle.
-Use emojis naturally. Keep each post between 2-4 sentences. 
-Do NOT number them or add labels.
-Separate each post with the delimiter: ---POST---`;
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/generate-copy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ description, goal })
     });
-
     if (!response.ok) throw new Error('Could not generate posts. Please try again.');
     const data = await response.json();
-    const text = data.content[0].text;
-    return text.split('---POST---').map(p => p.trim()).filter(p => p.length > 0).slice(0, 3);
+    return data.posts;
   }
 
   // ── SHOW POSTS ──
