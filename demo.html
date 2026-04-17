@@ -586,6 +586,29 @@
         </div>
       </div>
 
+      <!-- Tone toggle -->
+      <div>
+        <span class="field-label">Brand voice</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="toggle-btn active" onclick="setTone('warm', this)" style="padding:0.5rem 0.6rem">
+            <span class="t-label">Warm</span>
+            <span class="t-sub">Close, friendly</span>
+          </button>
+          <button class="toggle-btn" onclick="setTone('direct', this)" style="padding:0.5rem 0.6rem">
+            <span class="t-label">Direct</span>
+            <span class="t-sub">Bold, short</span>
+          </button>
+          <button class="toggle-btn" onclick="setTone('playful', this)" style="padding:0.5rem 0.6rem">
+            <span class="t-label">Playful</span>
+            <span class="t-sub">Fun, witty</span>
+          </button>
+          <button class="toggle-btn" onclick="setTone('minimal', this)" style="padding:0.5rem 0.6rem">
+            <span class="t-label">Minimal</span>
+            <span class="t-sub">Elegant</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Error -->
       <div class="error-msg" id="errorMsg">
         <span>⚠</span>
@@ -660,6 +683,13 @@
 <script>
   let selectedFile = null;
   let currentGoal = 'present';
+  let currentTone = 'warm';
+
+  function setTone(tone, btn) {
+    currentTone = tone;
+    btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 
   // ── FILE HANDLING ──
   function handleFile(event) {
@@ -702,7 +732,7 @@
   // ── GOAL TOGGLE ──
   function setGoal(goal, btn) {
     currentGoal = goal;
-    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
 
@@ -721,7 +751,7 @@
 
       // Generate copy and remove background in parallel
       const [posts, bgData] = await Promise.all([
-        generateCopy(description, currentGoal),
+        generateCopy(description, currentGoal, currentTone),
         removeBg(base64)
       ]);
 
@@ -754,11 +784,11 @@
   }
 
   // ── GENERATE COPY via backend ──
-  async function generateCopy(description, goal) {
+  async function generateCopy(description, goal, tone) {
     const response = await fetch('/api/generate-copy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description, goal })
+      body: JSON.stringify({ description, goal, tone })
     });
     if (!response.ok) throw new Error('Could not generate posts. Please try again.');
     const data = await response.json();
