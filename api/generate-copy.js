@@ -30,6 +30,8 @@ REGLAS CRÍTICAS:
 - PROHIBIDO los 3 posts sonar iguales — cada uno debe tener un ángulo completamente distinto
 - PROHIBIDO más de 1 emoji por post (y solo si aporta algo real)
 - PROHIBIDO terminar con preguntas retóricas tipo "¿lista para...?"
+- PROHIBIDO empezar con "Post 1:", "Post 2:", "# Instagram", "Variación" o cualquier etiqueta numerada
+- El output debe ser SOLO el contenido del post, sin títulos ni encabezados
 
 LO QUE SÍ HACER:
 - Escribir como habla una persona real en Instagram, no como una marca corporativa
@@ -48,7 +50,13 @@ Escribe exactamente 3 posts de Instagram. Cada uno debe:
 - Usar una estructura diferente al resto
 - Tener entre 2 y 4 oraciones
 - Sonar humano, no corporativo ni IA
-- No llevar etiquetas ni numeración
+- Empezar directamente con el texto del post
+
+FORMATO DE SALIDA (IMPORTANTE):
+- NO incluyas "Post 1:", "Post 2:", "Variation 1", números, ni ningún título o etiqueta
+- NO incluyas encabezados como "# Instagram Posts" ni nada similar
+- Empieza directamente con la primera palabra del post
+- El primer carácter de cada bloque debe ser la primera letra del post
 
 Separa cada post con el delimitador: ---POST---`;
 
